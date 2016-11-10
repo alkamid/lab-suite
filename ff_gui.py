@@ -14,6 +14,7 @@ from FF_measure import FF
 class FFgui(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
+        self.master.title('Far-field measurement suite')
         self.filename = tk.StringVar()
         self.grid()
         self.create_widgets()
@@ -21,7 +22,7 @@ class FFgui(tk.Frame):
 
     def updatefig(self, *args):
         try: data = np.loadtxt(self.filename.get())
-        except ValueError:
+        except (ValueError, TypeError) as e:
             return self.image,
 
         self.image.set_data(data)
@@ -40,6 +41,7 @@ class FFgui(tk.Frame):
         canvas.get_tk_widget().grid(column=4, row=3, rowspan=2, columnspan=2)
         self.canvas = canvas
 
+        #http://stackoverflow.com/questions/12913854/displaying-matplotlib-navigation-toolbar-in-tkinter-via-grid
         toolbar_frame = tk.Frame(self)
         toolbar_frame.grid(row=5,column=4, columnspan=2, sticky='W')
         toolbar = NavigationToolbar2TkAgg(canvas, toolbar_frame)
