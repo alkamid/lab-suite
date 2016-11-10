@@ -1,20 +1,24 @@
 from instrument import Instrument
 from time import sleep
+import pyvisa as visa
 
 class Lockin(Instrument):
     def __init__(self, address=None):
         self.identificator = 'lockin'
         super().__init__(address, self.identificator)
 
-    def read(self):
+    def read(self, trial=0):
         try:
-            r = self.ask('MAG?')
-            print(repr(r))
-            reading = int(r)
-            #reading = int(self.ask('MAG?'))
-        except ValueError:
-            sleep(0.1)
             reading = int(self.ask('MAG?'))
+        except ValueError:
+            sleep(0.01)
+            reading = int(self.ask('MAG?'))
+        except visa.errors.VisaIOError:
+            print('-----------------timeout--------------------')
+            if trial < 10:
+                return self.read(trial+1)
+            else:
+                raise visa.errors.VisaIOError
 
         return reading
 
