@@ -27,7 +27,7 @@ class Pulser(Instrument):
 
     def voltage_off(self):
         self.write(':output off')
-    def voltage_onn(self):
+    def voltage_on(self):
         self.write(':output on')
 
     def read_DC(self):
