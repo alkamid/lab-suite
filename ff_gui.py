@@ -14,7 +14,6 @@ from FF_measure import FF
 class FFgui(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
-        self.master.title('Far-field measurement suite')
         self.filename = tk.StringVar()
         self.grid()
         self.create_widgets()
@@ -22,7 +21,7 @@ class FFgui(tk.Frame):
 
     def updatefig(self, *args):
         try: data = np.loadtxt(self.filename.get())
-        except (ValueError, TypeError) as e:
+        except ValueError:
             return self.image,
 
         self.image.set_data(data)
@@ -59,7 +58,6 @@ class FFgui(tk.Frame):
         tk.Label(self, text="stop:").grid(row=0, column=2)
         tk.Label(self, text="step:").grid(row=0, column=3)
 
-        #TODO: allow deleting the whole input (shift + delete)
         #http://stackoverflow.com/questions/8959815/restricting-the-value-in-tkinter-entry-widget
         vcmd = (self.master.register(self.validate),
                 '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
@@ -116,15 +114,14 @@ class FFgui(tk.Frame):
 
     def validate(self, action, index, value_if_allowed,
                        prior_value, text, validation_type, trigger_type, widget_name):
-        if all([c in '0123456789.' for c in text]):
-            try:
-                float(value_if_allowed)
+        try:
+            float(value_if_allowed)
+            return True
+        except ValueError:
+            if value_if_allowed == '':
                 return True
-            except ValueError:
+            else:
                 return False
-        else:
-            return False
-
 
     def start_thread(self):
         if self.filename.get() == '':
