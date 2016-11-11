@@ -62,7 +62,7 @@ class FFgui(tk.Frame):
         vcmd = (self.master.register(self.validate),
                 '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
         inputs = (('ax1_start', 1, 1, 0), ('ax2_start', 2, 1, 0),
-                ('ax1_stop', 1, 2, '10'), ('ax2_stop', 2, 2, '10'),
+                ('ax1_stop', 1, 2, 10), ('ax2_stop', 2, 2, 10),
                 ('ax1_step', 1, 3, 1), ('ax2_step', 2, 3, 1))
 
         self.inputs = {}
@@ -129,14 +129,26 @@ class FFgui(tk.Frame):
             return -1
 
         #http://stackoverflow.com/questions/16745507/tkinter-how-to-use-threads-to-preventing-main-event-loop-from-freezing
-        self.b_start['state'] = 'disable'
         # create then start a secondary thread to run arbitrary()
         self.que = queue.Queue()
-        self.f = FF(queue=self.que, filename=self.filename.get())
-        self.secondary_thread = threading.Thread(target=self.arbitrary, args=(self.f,))
-        self.secondary_thread.start()
-        # check the Queue in 50ms
-        self.master.after(50, self.check_que)
+        param_values = {k: float(v.get()) for k, v in self.inputs.items()}
+        self.f = FF(queue=self.que, filename=self.filename.get(), parameters=param_values)
+        if self.check_lockin_delay() == True:
+            self.b_start['state'] = 'disable'
+            self.secondary_thread = threading.Thread(target=self.arbitrary, args=(self.f,))
+            self.secondary_thread.start()
+            # check the Queue in 50ms
+            self.master.after(50, self.check_que)
+
+    def check_lockin_delay(self):
+        if self.f.recomm_delay*1000 > float(self.inputs['lockin_delay'].get()):
+            if messagebox.askyesno('Lock-in delay', 'The lock-in delay ({0} ms) is less than 3*lock-in timeconstant ({1:.0f} ms). Do you want to continue?'
+                                .format(self.inputs['lockin_delay'].get(), self.f.recomm_delay*1000)):
+                return True
+            else:
+                return False
+        else:
+            return True
 
     def check_que(self):
         while True:
@@ -162,9 +174,6 @@ class FFgui(tk.Frame):
     def stop_meas(self):
         self.f.stop_measurement = True
         self.b_start['state'] = 'normal'
-
-    def say_hi(self):
-        print("hi there, everyone!")
 
 root = tk.Tk()
 app = FFgui(master=root)

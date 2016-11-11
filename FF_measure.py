@@ -6,19 +6,21 @@ from datetime import datetime
 import numpy as np
 
 class FF():
-    def __init__(self, stabilisation_time=None, queue=None, ax1_range=(0,10,1), ax2_range=(0,10,1), filename='test'):
-        self.ax1_start = ax1_range[0]
-        self.ax1_stop = ax1_range[1]
-        self.ax1_step = ax1_range[2]
-        self.ax2_start = ax2_range[0]
-        self.ax2_stop = ax2_range[1]
-        self.ax2_step = ax2_range[2]
+    def __init__(self, stabilisation_time=None, queue=None, parameters=None, filename='test'):
+        if parameters == None:
+            self.parameters = {'ax1_start': 0, 'ax1_stop': 10, 'ax1_step': 1,
+                                'ax2_start': 0, 'ax2_stop': 10, 'ax2_step': 1,
+                                'lockin_delay': None}
+        else:
+            self.parameters = parameters
+
+        print(self.parameters)
         self.ax1 = Stage(axis=1)
         self.ax2 = Stage(axis=2)
         self.lockin = Lockin(address="GPIB0::2::INSTR")
         self.pulser = Pulser(address="GPIB0::6::INSTR")
-        ax1_steps = int(abs(self.ax1_start-self.ax1_stop)/self.ax1_step+1)
-        ax2_steps = int(abs(self.ax2_start-self.ax2_stop)/self.ax2_step+1)
+        ax1_steps = int(abs(self.parameters['ax1_start']-self.parameters['ax1_stop'])/self.parameters['ax1_step']+1)
+        ax2_steps = int(abs(self.parameters['ax2_start']-self.parameters['ax2_stop'])/self.parameters['ax2_step']+1)
         self.results = np.zeros((ax1_steps, ax2_steps, 3))
         self.elapsed_time = 0
         self.queue = queue
@@ -26,10 +28,9 @@ class FF():
         self.filename = filename
         self.stop_measurement = False
 
-        if stabilisation_time == None:
-            self.stabilisation_time = self.lockin.get_timeconstant()*3
-        else:
-            self.stabilisation_time = stabilisation_time
+        self.recomm_delay = self.lockin.get_timeconstant()*3*1000
+        if self.parameters['lockin_delay'] == None:
+            self.parameters['lockin_delay'] = self.recomm_delay
 
     def write_parameters(self):
         with open(self.filename + '_info', 'w') as f:
@@ -41,7 +42,7 @@ class FF():
             f.write('lock-in_freq:\t{0}\n'.format(self.lockin.get_ref_freq()))
             f.write('pulser_freq:\t{0}\n'.format(self.pulser.read_freq()))
             f.write('pulser_DC:\t{0}\n'.format(self.pulser.read_DC()))
-            f.write('stabilisation_time:\t{0:.2f}\n'.format(self.stabilisation_time))
+            f.write('stabilisation_time:\t{0:.2f}\n'.format(self.parameters['lockin_delay']))
             f.write('-----------------\n')
 
     def write_into_array(self, ax1, ax2):
@@ -59,8 +60,8 @@ class FF():
 
     def estimate_time(self, tic, toc, curr):
         self.elapsed_time += (toc-tic)
-        num_steps = abs(self.ax1_start-self.ax1_stop)/self.ax1_step+1
-        current_step = (curr-self.ax1_start)/self.ax1_step+1
+        num_steps = abs(self.parameters['ax1_start']-self.parameters['ax1_stop'])/self.parameters['ax1_step']+1
+        current_step = (curr-self.parameters['ax1_start'])/self.parameters['ax1_step']+1
         print(current_step)
         total_time = num_steps*self.elapsed_time/current_step
         time_left = total_time - self.elapsed_time
@@ -73,10 +74,11 @@ class FF():
         self.ax2.initialise()
 
         self.write_parameters()
+        print('im')
 
         oddeven = 0
-        for i in np.linspace(self.ax1_start, self.ax1_stop, abs(self.ax1_start-self.ax1_stop)/self.ax1_step+1):
-            ax2range = np.linspace(self.ax2_start, self.ax2_stop, abs(self.ax2_start-self.ax2_stop)/self.ax2_step+1)
+        for i in np.linspace(self.parameters['ax1_start'], self.parameters['ax1_stop'], abs(self.parameters['ax1_start']-self.parameters['ax1_stop'])/self.parameters['ax1_step']+1):
+            ax2range = np.linspace(self.parameters['ax2_start'], self.parameters['ax2_stop'], abs(self.parameters['ax2_start']-self.parameters['ax2_stop'])/self.parameters['ax2_step']+1)
             tic = time()
             if oddeven%2 == 0:
                 reverse = 1
@@ -85,7 +87,7 @@ class FF():
             for j in ax2range[::reverse]:
                 self.ax1.move_to(i)
                 self.ax2.move_to(j)
-                sleep(self.stabilisation_time)
+                sleep(self.parameters['lockin_delay']/1000)
                 print("Taking measurement at ax1={0}, ax2={1}".format(self.ax1.read_pos(), self.ax2.read_pos()))
                 self.write_into_array(i, j)
                 self.write_to_file()
