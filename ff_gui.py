@@ -17,7 +17,6 @@ class FFgui(tk.Frame):
         self.filename = tk.StringVar()
         self.grid()
         self.create_widgets()
-        #self.create_plot()
 
     def updatefig(self, *args):
         try: data = np.loadtxt(self.filename.get())
@@ -30,24 +29,24 @@ class FFgui(tk.Frame):
     def create_plot(self):
         #http://stackoverflow.com/questions/33741403/using-figurecanvastkagg-in-two-tkinter-pages-with-python
         data = np.loadtxt(self.filename.get())
-        fig = plt.figure()
+        self.fig = plt.figure()
+        self.ax = self.fig.add_subplot(111)
 
-        im = plt.imshow(data, cmap='viridis', interpolation='none')
-        self.image = im
+        self.image = self.ax.imshow(data, cmap='viridis', interpolation='none')
 
-        canvas = FigureCanvasTkAgg(fig, self)
+        canvas = FigureCanvasTkAgg(self.fig, self)
         canvas.show()
         canvas.get_tk_widget().grid(column=4, row=3, rowspan=2, columnspan=2)
         self.canvas = canvas
 
         #http://stackoverflow.com/questions/12913854/displaying-matplotlib-navigation-toolbar-in-tkinter-via-grid
-        toolbar_frame = tk.Frame(self)
-        toolbar_frame.grid(row=5,column=4, columnspan=2, sticky='W')
-        toolbar = NavigationToolbar2TkAgg(canvas, toolbar_frame)
-        toolbar.update()
-        toolbar.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        self.toolbar_frame = tk.Frame(self)
+        self.toolbar_frame.grid(row=5,column=4, columnspan=2, sticky='W')
+        self.toolbar = NavigationToolbar2TkAgg(self.canvas, self.toolbar_frame)
+        self.toolbar.update()
+        self.toolbar.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
-        self.ani = animation.FuncAnimation(fig, self.updatefig, interval=500, blit=True)
+        self.ani = animation.FuncAnimation(self.fig, self.updatefig, interval=500, blit=True)
 
 
     def create_widgets(self):
@@ -133,13 +132,14 @@ class FFgui(tk.Frame):
             return -1
 
         #http://stackoverflow.com/questions/16745507/tkinter-how-to-use-threads-to-preventing-main-event-loop-from-freezing
-        # create then start a secondary thread to run arbitrary()
+        # create then start a secondary thread to run start_ff()
         self.que = queue.Queue()
         param_values = {k: float(v.get()) for k, v in self.inputs.items()}
         self.f = FF(queue=self.que, filename=self.filename.get(), parameters=param_values)
         if self.check_lockin_delay() == True:
+            self.create_plot()
             self.b_start['state'] = 'disable'
-            self.secondary_thread = threading.Thread(target=self.arbitrary, args=(self.f,))
+            self.secondary_thread = threading.Thread(target=self.start_ff, args=(self.f,))
             self.secondary_thread.start()
             # check the Queue in 50ms
             self.master.after(50, self.check_que)
@@ -177,7 +177,7 @@ class FFgui(tk.Frame):
         h, m = divmod(m, 60)
         self.timeleft_text.set('Time left: {0:02}:{1:02}:{2:02}'.format(h,m,s))
 
-    def arbitrary(self, ff):
+    def start_ff(self, ff):
         ff.measure()
 
     def stop_meas(self):
