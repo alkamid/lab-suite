@@ -141,9 +141,9 @@ class FFgui(tk.Frame):
             self.master.after(50, self.check_que)
 
     def check_lockin_delay(self):
-        if self.f.recomm_delay*1000 > float(self.inputs['lockin_delay'].get()):
+        if self.f.recomm_delay > float(self.inputs['lockin_delay'].get()):
             if messagebox.askyesno('Lock-in delay', 'The lock-in delay ({0} ms) is less than 3*lock-in timeconstant ({1:.0f} ms). Do you want to continue?'
-                                .format(self.inputs['lockin_delay'].get(), self.f.recomm_delay*1000)):
+                                .format(self.inputs['lockin_delay'].get(), self.f.recomm_delay)):
                 return True
             else:
                 return False
