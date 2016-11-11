@@ -104,6 +104,10 @@ class FFgui(tk.Frame):
 
         self.prog_bar.grid(column=4, row=6, sticky='W')
 
+        self.timeleft_text = tk.StringVar()
+        self.timeleft_text.set('')
+        self.timeleft = tk.Label(self, textvariable=self.timeleft_text)
+        self.timeleft.grid(row=6, column=5, sticky='W')
 
     def load_file(self):
         fname = filedialog.asksaveasfilename()
@@ -159,6 +163,7 @@ class FFgui(tk.Frame):
             else: # continue from the try suite
                 if x == 'finished':
                     self.b_start['state'] = 'normal'
+                    self.timeleft_text.set('Measurement finished!')
                     break
                 elif x.startswith('eta'):
                     self.update_progressbar(x)
@@ -167,6 +172,10 @@ class FFgui(tk.Frame):
         vals = params.split(',')
         self.prog_bar['maximum'] = int(vals[1])
         self.int_val.set(vals[2])
+        seconds_left = int(vals[1])-int(vals[2])
+        m, s = divmod(seconds_left, 60)
+        h, m = divmod(m, 60)
+        self.timeleft_text.set('Time left: {0:02}:{1:02}:{2:02}'.format(h,m,s))
 
     def arbitrary(self, ff):
         ff.measure()
