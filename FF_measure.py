@@ -14,7 +14,6 @@ class FF():
         else:
             self.parameters = parameters
 
-        print(self.parameters)
         self.ax1 = Stage(axis=1)
         self.ax2 = Stage(axis=2)
         self.lockin = Lockin(address="GPIB0::2::INSTR")
@@ -74,19 +73,22 @@ class FF():
         self.ax2.initialise()
 
         self.write_parameters()
-        print('im')
 
         oddeven = 0
-        for i in np.linspace(self.parameters['ax1_start'], self.parameters['ax1_stop'], abs(self.parameters['ax1_start']-self.parameters['ax1_stop'])/self.parameters['ax1_step']+1):
+        i = 0
+        for ax1 in np.linspace(self.parameters['ax1_start'], self.parameters['ax1_stop'], abs(self.parameters['ax1_start']-self.parameters['ax1_stop'])/self.parameters['ax1_step']+1):
             ax2range = np.linspace(self.parameters['ax2_start'], self.parameters['ax2_stop'], abs(self.parameters['ax2_start']-self.parameters['ax2_stop'])/self.parameters['ax2_step']+1)
             tic = time()
             if oddeven%2 == 0:
                 reverse = 1
+                j = 0
             else:
                 reverse = -1
-            for j in ax2range[::reverse]:
-                self.ax1.move_to(i)
-                self.ax2.move_to(j)
+                j = len(ax2range)-1
+            for ax2 in ax2range[::reverse]:
+
+                self.ax1.move_to(ax1)
+                self.ax2.move_to(ax2)
                 sleep(self.parameters['lockin_delay']/1000)
                 print("Taking measurement at ax1={0}, ax2={1}".format(self.ax1.read_pos(), self.ax2.read_pos()))
                 self.write_into_array(i, j)
@@ -94,6 +96,11 @@ class FF():
                 self.write_sequentially()
                 if self.stop_measurement == True:
                     return 0
+                if oddeven%2 == 0:
+                    j += 1
+                else:
+                    j -= 1
             oddeven+=1
             toc = time()
-            self.estimate_time(tic, toc, i)
+            self.estimate_time(tic, toc, ax1)
+            i+=1
