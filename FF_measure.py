@@ -104,3 +104,5 @@ class FF():
             toc = time()
             self.estimate_time(tic, toc, ax1)
             i+=1
+
+        self.queue.put('finished')
