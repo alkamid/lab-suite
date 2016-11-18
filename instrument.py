@@ -10,7 +10,7 @@ class Instrument():
             self.find_instrument(identificator)
 
     def find_instrument(self, instr_type):
-        identificators = {'stage': 'ESP300', 'pulser': 'HEWLETT-PACKARD'}
+        identificators = {'stage': 'ESP300', 'pulser': 'HEWLETT-PACKARD', 'tempcon': 'Cryocon'}
         for i in range(20):
             self.instr = rm.open_resource('GPIB0::{0}::INSTR'.format(i))
             try: self.id = self.instr.query('*IDN?')
