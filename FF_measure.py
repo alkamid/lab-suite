@@ -14,8 +14,8 @@ class FF():
         else:
             self.parameters = parameters
 
-        self.ax1 = Stage(axis=1)
-        self.ax2 = Stage(axis=2)
+        self.ax1 = Stage(axis=2)
+        self.ax2 = Stage(axis=1)
         self.lockin = Lockin(address="GPIB0::2::INSTR")
         self.pulser = Pulser(address="GPIB0::6::INSTR")
         ax1_steps = int(abs(self.parameters['ax1_start']-self.parameters['ax1_stop'])/self.parameters['ax1_step']+1)
@@ -25,6 +25,7 @@ class FF():
         self.queue = queue
 
         self.filename = filename
+        self.file_written = False
         self.stop_measurement = False
 
         self.recomm_delay = self.lockin.get_timeconstant()*3*1000
@@ -50,6 +51,9 @@ class FF():
 
     def write_to_file(self):
         np.savetxt(self.filename, self.results[:,:,2])
+        if self.file_written == False:
+            self.file_written = True
+            self.queue.put('write_started')
 
     def write_sequentially(self):
         with open(self.filename + '_seq', 'w') as f:

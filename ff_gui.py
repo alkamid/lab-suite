@@ -14,9 +14,12 @@ from FF_measure import FF
 class FFgui(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
+        self.master.title('Far-field measurement suite v0.9')
         self.filename = tk.StringVar()
         self.grid()
-        self.create_widgets()
+        self.create_widgets_left()
+        self.create_widgets_right()
+        self.create_empty_plot()
 
     def updatefig(self, *args):
         try: data = np.loadtxt(self.filename.get())
@@ -26,6 +29,17 @@ class FFgui(tk.Frame):
         self.image.set_data(data)
         return self.image,
 
+    def create_empty_plot(self):
+        data = np.zeros((5,5))
+        self.fig = plt.figure()
+        self.ax = self.fig.add_subplot(111)
+        self.image = self.ax.imshow(data, cmap='viridis')
+
+        canvas = FigureCanvasTkAgg(self.fig, self.right_panel)
+        canvas.show()
+        canvas.get_tk_widget().grid(column=4, row=3, rowspan=2, columnspan=2)
+        self.canvas = canvas
+
     def create_plot(self):
         #http://stackoverflow.com/questions/33741403/using-figurecanvastkagg-in-two-tkinter-pages-with-python
         data = np.loadtxt(self.filename.get())
@@ -34,13 +48,13 @@ class FFgui(tk.Frame):
 
         self.image = self.ax.imshow(data, cmap='viridis', interpolation='none')
 
-        canvas = FigureCanvasTkAgg(self.fig, self)
+        canvas = FigureCanvasTkAgg(self.fig, self.right_panel)
         canvas.show()
         canvas.get_tk_widget().grid(column=4, row=3, rowspan=2, columnspan=2)
         self.canvas = canvas
 
         #http://stackoverflow.com/questions/12913854/displaying-matplotlib-navigation-toolbar-in-tkinter-via-grid
-        self.toolbar_frame = tk.Frame(self)
+        self.toolbar_frame = tk.Frame(self.right_panel)
         self.toolbar_frame.grid(row=5,column=4, columnspan=2, sticky='W')
         self.toolbar = NavigationToolbar2TkAgg(self.canvas, self.toolbar_frame)
         self.toolbar.update()
@@ -48,55 +62,65 @@ class FFgui(tk.Frame):
 
         self.ani = animation.FuncAnimation(self.fig, self.updatefig, interval=500, blit=True)
 
+    def create_widgets_left(self):
 
-    def create_widgets(self):
+        self.left_panel = tk.Frame(self)
+        self.left_panel.grid(row=0, column=0, sticky='W')
 
-        tk.Label(self, text="Axis 1:").grid(row=1, column=0)
-        tk.Label(self, text="Axis 2:").grid(row=2, column=0)
-        tk.Label(self, text="start:").grid(row=0, column=1)
-        tk.Label(self, text="stop:").grid(row=0, column=2)
-        tk.Label(self, text="step:").grid(row=0, column=3)
+        self.fileload = tk.Button(self.left_panel, text='Choose file name', command=self.load_file)
+        self.fileload.grid(column=0, row=0, sticky='W')
+
+        self.file_entry = tk.Entry(self.left_panel, textvariable=self.filename, width=50)
+        self.file_entry.grid(column=1, row=0, columnspan = 3, sticky='W')
+
+        tk.Label(self.left_panel, text="Axis 1:").grid(row=2, column=0)
+        tk.Label(self.left_panel, text="Axis 2:").grid(row=3, column=0)
+        tk.Label(self.left_panel, text="start:").grid(row=1, column=1)
+        tk.Label(self.left_panel, text="stop:").grid(row=1, column=2)
+        tk.Label(self.left_panel, text="step:").grid(row=1, column=3)
 
         #http://stackoverflow.com/questions/8959815/restricting-the-value-in-tkinter-entry-widget
         vcmd = (self.master.register(self.validate),
                 '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
-        inputs = (('ax1_start', 1, 1, 0), ('ax2_start', 2, 1, 0),
-                ('ax1_stop', 1, 2, 10), ('ax2_stop', 2, 2, 10),
-                ('ax1_step', 1, 3, 1), ('ax2_step', 2, 3, 1))
+        inputs = (('ax1_start', 2, 1, 0), ('ax2_start', 3, 1, 0),
+                ('ax1_stop', 2, 2, 10), ('ax2_stop', 3, 2, 10),
+                ('ax1_step', 2, 3, 1), ('ax2_step', 3, 3, 1))
 
         self.inputs = {}
         for inp in inputs:
-            self.inputs[inp[0]] = tk.Entry(self, validate = 'key', validatecommand = vcmd)
+            self.inputs[inp[0]] = tk.Entry(self.left_panel, validate = 'key', validatecommand = vcmd)
             self.inputs[inp[0]].insert('end', inp[3])
             self.inputs[inp[0]].grid(row=inp[1], column=inp[2])
 
-        tk.Label(self, text='lock-in delay').grid(row=3, column=0)
-        self.inputs['lockin_delay'] = tk.Entry(self, validate = 'key', validatecommand = vcmd)
+        tk.Label(self.left_panel, text='lock-in delay').grid(row=4, column=0)
+        self.inputs['lockin_delay'] = tk.Entry(self.left_panel, validate = 'key', validatecommand = vcmd)
         self.inputs['lockin_delay'].insert(0, 1500)
-        self.inputs['lockin_delay'].grid(row=3, column=1)
-
-        self.fileload = tk.Button(self, text='Browse', command=self.load_file)
-        self.fileload.grid(column=4, row=0, sticky='W')
-
-        self.file_entry = tk.Entry(self, textvariable=self.filename, width=50)
-        self.file_entry.grid(column=5, row=0, sticky='W')
+        self.inputs['lockin_delay'].grid(row=4, column=1, pady=20)
 
 
-        self.b_start = tk.Button(self)
-        self.b_start["text"] = "Start measurement"
+        self.b_start = tk.Button(self.left_panel)
+        self.b_start["text"] = "START measurement"
         self.b_start["command"] = self.start_thread
-        self.b_start.grid(column=0, row=4)
+        self.b_start.grid(column=0, row=6, sticky='W', pady=3)
 
-        self.stop = tk.Button(self, text="STOP measurement", command=self.stop_meas)
-        self.stop.grid(column=0, row=5)
+        self.stop = tk.Button(self.left_panel, text="STOP measurement", command=self.stop_meas)
+        self.stop.grid(column=1, row=6, sticky='E', pady=3)
 
-        self.quit = tk.Button(self, text="QUIT", fg="red",
+        tk.Label(self.left_panel, text="Lock-in: ").grid(row=7, column=0)
+        tk.Label(self.left_panel, text="Pulser: ").grid(row=8, column=0)
+        tk.Label(self.left_panel, text="Stages: ").grid(row=9, column=0)
+
+        '''self.quit = tk.Button(self.left_panel, text="QUIT", fg="red",
                               command=self.master.destroy)
-        self.quit.grid(column=0, row=6)
+        self.quit.grid(column=0, row=8)'''
+
+    def create_widgets_right(self):
+        self.right_panel = tk.Frame()
+        self.right_panel.grid(row=0, column=1)
 
         self.int_val = tk.IntVar()
         self.prog_bar = ttk.Progressbar(
-            self, orient="horizontal",
+            self.right_panel, orient="horizontal",
             length=200, mode="determinate"
             )
         self.prog_bar['variable'] = self.int_val
@@ -105,7 +129,7 @@ class FFgui(tk.Frame):
 
         self.timeleft_text = tk.StringVar()
         self.timeleft_text.set('')
-        self.timeleft = tk.Label(self, textvariable=self.timeleft_text)
+        self.timeleft = tk.Label(self.right_panel, textvariable=self.timeleft_text)
         self.timeleft.grid(row=6, column=5, sticky='W')
 
     def load_file(self):
@@ -113,7 +137,6 @@ class FFgui(tk.Frame):
 
         if fname:
             self.filename.set(fname)
-            self.create_plot()
 
     def validate(self, action, index, value_if_allowed,
                        prior_value, text, validation_type, trigger_type, widget_name):
@@ -137,7 +160,6 @@ class FFgui(tk.Frame):
         param_values = {k: float(v.get()) for k, v in self.inputs.items()}
         self.f = FF(queue=self.que, filename=self.filename.get(), parameters=param_values)
         if self.check_lockin_delay() == True:
-            self.create_plot()
             self.b_start['state'] = 'disable'
             self.secondary_thread = threading.Thread(target=self.start_ff, args=(self.f,))
             self.secondary_thread.start()
@@ -165,6 +187,8 @@ class FFgui(tk.Frame):
                     self.b_start['state'] = 'normal'
                     self.timeleft_text.set('Measurement finished!')
                     break
+                elif x == 'write_started':
+                    self.create_plot()
                 elif x.startswith('eta'):
                     self.update_progressbar(x)
 
