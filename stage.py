@@ -49,3 +49,20 @@ class Stage(Instrument):
         except:
             print("Can't read the stage position!")
             return None
+
+    def set_speed(self, speed='max'):
+        max_speed = float(self.ask('VU?'))
+
+        if speed == 'max':
+            self.write('VA {0}'.format(max_speed))
+        else:
+            try: speed_float = float(speed)
+            except ValueError:
+                print("The speed value must be a number!")
+                return None
+            else:
+                if speed_float > max_speed:
+                    print("The maximum speed value is {0}".format(max_speed))
+                    return None
+                else:
+                    self.write('VA {0}'.format(speed_float))
