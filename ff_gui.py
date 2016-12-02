@@ -27,6 +27,12 @@ class FFgui(tk.Frame):
             return self.image,
 
         self.image.set_data(data)
+        #also update the colorbar
+        #http://stackoverflow.com/questions/39472017/how-to-animate-the-colorbar-in-matplotlib
+        vmin = np.min(data)
+        vmax = np.max(data)
+        #self.cbar.update_normal()
+        self.image.set_clim(vmin, vmax)
         return self.image,
 
     def create_empty_plot(self):
@@ -47,6 +53,7 @@ class FFgui(tk.Frame):
         self.ax = self.fig.add_subplot(111)
 
         self.image = self.ax.imshow(data, cmap='viridis', interpolation='none')
+        self.cb = self.fig.colorbar(self.image)
 
         canvas = FigureCanvasTkAgg(self.fig, self.right_panel)
         canvas.show()
